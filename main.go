@@ -33,17 +33,17 @@ func pullRequestHandler(w http.ResponseWriter, r *http.Request, client *github.C
 	// now handle p
 	switch act := *p.Action; act {
 	case "assigned":
-		fallthrough
+		return
 	case "unassigned":
-		fallthrough
+		return
 	case "review_requested":
-		fallthrough
+		return
 	case "review_requested_removed":
-		fallthrough
+		return
 	case "labeled":
-		fallthrough
+		return
 	case "unlabeled":
-		fallthrough
+		return
 	case "opened":
 		comment := &github.IssueComment{
 			Body: github.String("Hi, I am helpbot, I will be managing this PR!"),
@@ -60,11 +60,11 @@ func pullRequestHandler(w http.ResponseWriter, r *http.Request, client *github.C
 		}
 
 	case "edited":
-		fallthrough
+		return
 	case "closed":
-		fallthrough
+		return
 	case "reopened":
-		fallthrough
+		return
 	default:
 		return
 
@@ -85,6 +85,20 @@ type CommentAuthor struct {
 	} `json:"comment"`
 }
 
+func commentLabel(s string, labels []*github.Label) []string {
+	var ret []string
+	var lab github.Label
+	for i := 0; i < len(labels); i++ {
+		lab = *labels[i]
+		var mergeRegExp = regexp.MustCompile(`\/` + *lab.Name)
+		matched := mergeRegExp.MatchString(s)
+		if matched {
+			ret = append(ret, *lab.Name)
+		}
+	}
+	return ret
+}
+
 func pullCommentHandler(w http.ResponseWriter, r *http.Request, client *github.Client, ctx *context.Context) {
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
@@ -98,6 +112,10 @@ func pullCommentHandler(w http.ResponseWriter, r *http.Request, client *github.C
 	// now handle p
 	act := *p.Action
 	if act != "deleted" {
+		tail := strings.TrimPrefix(*p.Issue.URL, "https://api.github.com/repos/")
+		owner := strings.Split(tail, "/")[0]
+		repo := strings.Split(tail, "/")[1]
+		number, _ := strconv.ParseInt(strings.Split(tail, "/")[3], 10, 64)
 		merg := commentMerge(*p.Comment.Body)
 		// only merge if request from proper person
 		if merg {
@@ -105,24 +123,20 @@ func pullCommentHandler(w http.ResponseWriter, r *http.Request, client *github.C
 			err = json.Unmarshal(body, &auth)
 			if err != nil {
 				log.Println(err)
-				panic(err)
 			}
 			switch auth.Comment.AuthorAssociation {
 			case
 				"OWNER",
 				"COLLABORATOR",
 				"MEMBER":
-				tail := strings.TrimPrefix(*p.Issue.URL, "https://api.github.com/repos/")
-				owner := strings.Split(tail, "/")[0]
-				repo := strings.Split(tail, "/")[1]
-				number, _ := strconv.ParseInt(strings.Split(tail, "/")[3], 10, 64)
-				if err != nil {
-					log.Println(err)
-				}
 				message := "Merging away, authorized by " + *p.Comment.User.Login
 				client.PullRequests.Merge(*ctx, owner, repo, int(number), message, nil)
 			}
 		}
+		repLabels, _, _ := client.Issues.ListLabels(*ctx, owner, repo, nil)
+		labels := commentLabel(*p.Comment.Body, repLabels)
+		client.Issues.AddLabelsToIssue(*ctx, owner, repo, int(number), labels)
+
 	}
 }
 
