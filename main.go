@@ -3,28 +3,19 @@ package main
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"html/template"
 	"io/ioutil"
 	"log"
 	"net/http"
 	"os"
+	"regexp"
 	"strconv"
 	"strings"
 
 	"github.com/google/go-github/github"
 	"golang.org/x/oauth2"
 )
-
-type PullRequestEvent struct {
-	Action       string              `json:"action,omitempty"`
-	Number       int                 `json:"number,omitempty"`
-	PullRequest  *github.PullRequest `json:"pull_request,omitempty"`
-	Repository   *github.Repository  `json:"repository,omitempty"`
-	Sender       *github.User        `json:"sender,omitempty"`
-	Installation struct {
-		ID string `json:"id,omitempty"`
-	} `json:"installation,omitempty"`
-}
 
 type BaseData struct {
 	Text string
@@ -35,13 +26,13 @@ func pullRequestHandler(w http.ResponseWriter, r *http.Request, client *github.C
 	if err != nil {
 		panic(err)
 	}
-	var p PullRequestEvent
+	var p github.PullRequestEvent
 	err = json.Unmarshal(body, &p)
 	if err != nil {
 		panic(err)
 	}
 	// now handle p
-	switch act := p.Action; act {
+	switch act := *p.Action; act {
 	case "assigned":
 		fallthrough
 	case "unassigned":
@@ -81,6 +72,38 @@ func pullRequestHandler(w http.ResponseWriter, r *http.Request, client *github.C
 	}
 }
 
+// Look for /merge in text
+func commentMerge(s string) (bool, error) {
+	matched, err := regexp.MatchString("/merge.", s)
+	if err != nil {
+		log.Println(err)
+	}
+	return matched, err
+}
+func pullCommentHandler(w http.ResponseWriter, r *http.Request, client *github.Client, ctx *context.Context) {
+	body, err := ioutil.ReadAll(r.Body)
+	if err != nil {
+		panic(err)
+	}
+	var p github.IssueCommentEvent
+	err = json.Unmarshal(body, &p)
+	if err != nil {
+		panic(err)
+	}
+	// now handle p
+	act := *p.Action
+	if act != "deleted" {
+		merg, err := commentMerge(*p.Issue.Body)
+		if err != nil {
+			panic(err)
+		}
+		// only merge if request from proper person
+		if merg {
+			fmt.Println("merging")
+		}
+	}
+}
+
 func baseHandler(w http.ResponseWriter, r *http.Request) {
 	tmpl := template.Must(template.ParseFiles("templates/base.html"))
 	t := BaseData{Text: "Hello, this is just a webpage"}
@@ -98,6 +121,9 @@ func main() {
 	http.HandleFunc("/", baseHandler)
 	http.HandleFunc("/pull_request", func(w http.ResponseWriter, r *http.Request) {
 		pullRequestHandler(w, r, client, &ctx)
+	})
+	http.HandleFunc("/issue_comment", func(w http.ResponseWriter, r *http.Request) {
+		pullCommentHandler(w, r, client, &ctx)
 	})
 	var port = os.Getenv("PORT")
 	if port == "" {
