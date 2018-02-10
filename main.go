@@ -61,9 +61,14 @@ func pullRequestHandler(w http.ResponseWriter, r *http.Request, client *github.C
 		tail := strings.TrimPrefix(*p.PullRequest.URL, "https://api.github.com/repos/")
 		owner := strings.Split(tail, "/")[0]
 		repo := strings.Split(tail, "/")[1]
-		number, _ := strconv.ParseInt(strings.Split(tail, "/")[2], 10, 64)
-		log.Println(owner, repo)
-		client.Issues.CreateComment(*ctx, owner, repo, int(number), comment)
+		number, _ := strconv.ParseInt(strings.Split(tail, "/")[3], 10, 64)
+		_, resp, err := client.Issues.CreateComment(*ctx, owner, repo, int(number), comment)
+		if err != nil {
+			log.Println(owner, repo, number)
+			log.Println(resp)
+			log.Println(err)
+		}
+
 	case "edited":
 		fallthrough
 	case "closed":
