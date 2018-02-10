@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"html/template"
 	"io/ioutil"
 	"log"
@@ -73,13 +72,19 @@ func pullRequestHandler(w http.ResponseWriter, r *http.Request, client *github.C
 }
 
 // Look for /merge in text
-func commentMerge(s string) (bool, error) {
-	matched, err := regexp.MatchString("/merge.", s)
-	if err != nil {
-		log.Println(err)
-	}
-	return matched, err
+func commentMerge(s string) bool {
+	var mergeRegExp = regexp.MustCompile(`\/merge`)
+	matched := mergeRegExp.MatchString(s)
+	return matched
 }
+
+// Get type of comment author
+type CommentAuthor struct {
+	Comment struct {
+		AuthorAssociation string `json:"author_association"`
+	} `json:"comment"`
+}
+
 func pullCommentHandler(w http.ResponseWriter, r *http.Request, client *github.Client, ctx *context.Context) {
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
@@ -93,13 +98,30 @@ func pullCommentHandler(w http.ResponseWriter, r *http.Request, client *github.C
 	// now handle p
 	act := *p.Action
 	if act != "deleted" {
-		merg, err := commentMerge(*p.Issue.Body)
-		if err != nil {
-			panic(err)
-		}
+		merg := commentMerge(*p.Comment.Body)
 		// only merge if request from proper person
 		if merg {
-			fmt.Println("merging")
+			var auth CommentAuthor
+			err = json.Unmarshal(body, &auth)
+			if err != nil {
+				log.Println(err)
+				panic(err)
+			}
+			switch auth.Comment.AuthorAssociation {
+			case
+				"OWNER",
+				"COLLABORATOR",
+				"MEMBER":
+				tail := strings.TrimPrefix(*p.Issue.URL, "https://api.github.com/repos/")
+				owner := strings.Split(tail, "/")[0]
+				repo := strings.Split(tail, "/")[1]
+				number, _ := strconv.ParseInt(strings.Split(tail, "/")[3], 10, 64)
+				if err != nil {
+					log.Println(err)
+				}
+				message := "Merging away, authorized by " + *p.Comment.User.Login
+				client.PullRequests.Merge(*ctx, owner, repo, int(number), message, nil)
+			}
 		}
 	}
 }
