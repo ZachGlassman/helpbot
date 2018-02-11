@@ -32,18 +32,6 @@ func pullRequestHandler(w http.ResponseWriter, r *http.Request, client *github.C
 	}
 	// now handle p
 	switch act := *p.Action; act {
-	case "assigned":
-		return
-	case "unassigned":
-		return
-	case "review_requested":
-		return
-	case "review_requested_removed":
-		return
-	case "labeled":
-		return
-	case "unlabeled":
-		return
 	case "opened":
 		comment := &github.IssueComment{
 			Body: github.String("Hi, I am helpbot, I will be managing this PR!"),
@@ -58,13 +46,6 @@ func pullRequestHandler(w http.ResponseWriter, r *http.Request, client *github.C
 			log.Println(resp)
 			log.Println(err)
 		}
-
-	case "edited":
-		return
-	case "closed":
-		return
-	case "reopened":
-		return
 	default:
 		return
 
