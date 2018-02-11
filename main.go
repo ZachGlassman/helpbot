@@ -32,18 +32,6 @@ func pullRequestHandler(w http.ResponseWriter, r *http.Request, client *github.C
 	}
 	// now handle p
 	switch act := *p.Action; act {
-	case "assigned":
-		return
-	case "unassigned":
-		return
-	case "review_requested":
-		return
-	case "review_requested_removed":
-		return
-	case "labeled":
-		return
-	case "unlabeled":
-		return
 	case "opened":
 		comment := &github.IssueComment{
 			Body: github.String("Hi, I am helpbot, I will be managing this PR!"),
@@ -58,13 +46,6 @@ func pullRequestHandler(w http.ResponseWriter, r *http.Request, client *github.C
 			log.Println(resp)
 			log.Println(err)
 		}
-
-	case "edited":
-		return
-	case "closed":
-		return
-	case "reopened":
-		return
 	default:
 		return
 
@@ -95,6 +76,16 @@ func commentLabel(s string, labels []*github.Label) []string {
 		if matched {
 			ret = append(ret, *lab.Name)
 		}
+	}
+	return ret
+}
+
+func handleReviews(s string) []string {
+	var regExp = regexp.MustCompile(`\/review@(\w+)`)
+	res := regExp.FindAllString(s, -1)
+	var ret []string
+	for i := 0; i < len(res); i++ {
+		ret = append(ret, strings.ToLower(strings.Split(res[i], "@")[1]))
 	}
 	return ret
 }
@@ -136,6 +127,40 @@ func pullCommentHandler(w http.ResponseWriter, r *http.Request, client *github.C
 		repLabels, _, _ := client.Issues.ListLabels(*ctx, owner, repo, nil)
 		labels := commentLabel(*p.Comment.Body, repLabels)
 		client.Issues.AddLabelsToIssue(*ctx, owner, repo, int(number), labels)
+		// now handle reviews
+		users := handleReviews(*p.Comment.Body)
+		if len(users) > 0 {
+			var gUsers []string
+			var bUsers []string
+			collabs, _, err := client.Repositories.ListCollaborators(*ctx, owner, repo, nil)
+			if err != nil {
+				log.Println("error getting collaborators")
+				log.Println(err)
+			}
+			if len(collabs) > 0 {
+				for i := 0; i < len(collabs); i++ {
+					found := false
+					ele := collabs[i]
+					name := strings.ToLower(*ele.Login)
+					for j := 0; j < len(users); j++ {
+						if name == users[j] {
+							gUsers = append(gUsers, *ele.Login)
+							found = true
+						}
+					}
+					if found != true {
+						bUsers = append(bUsers, name)
+					}
+				}
+				// now request reviews
+				reviewers := github.ReviewersRequest{Reviewers: gUsers}
+				_, resp, err := client.PullRequests.RequestReviewers(*ctx, owner, repo, int(number), reviewers)
+				if err != nil {
+					log.Println("problem adding reviewers")
+					log.Println(resp, err)
+				}
+			}
+		}
 
 	}
 }
