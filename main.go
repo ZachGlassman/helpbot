@@ -62,6 +62,12 @@ func commentMerge(s string) bool {
 	return matched
 }
 
+func commentForceMerge(s string) bool {
+	var mergeRegExp = regexp.MustCompile(`\/forcemerge`)
+	matched := mergeRegExp.MatchString(s)
+	return matched
+}
+
 // Get type of comment author
 type CommentAuthor struct {
 	Comment struct {
@@ -127,6 +133,17 @@ func handleReviews(s string, client *github.Client, ctx *context.Context, owner 
 	}
 }
 
+// query for tests passing, get status of last commit to PR
+func testState(client *github.Client, ctx *context.Context, owner string, repo string, number int64) string {
+	commits, resp, err := client.PullRequests.ListCommits(*ctx, owner, repo, int(number), nil)
+	handleGithubError(resp, err, "problem getting pull requests")
+	commit := commits[len(commits)-1]
+	statuses, resp, err := client.Repositories.ListStatuses(*ctx, owner, repo, *commit.SHA, nil)
+	handleGithubError(resp, err, "could not get status")
+	status := statuses[0]
+	return *status.State
+}
+
 func pullCommentHandler(w http.ResponseWriter, r *http.Request, client *github.Client, ctx *context.Context) {
 	body, err := ioutil.ReadAll(r.Body)
 	if err != nil {
@@ -144,21 +161,39 @@ func pullCommentHandler(w http.ResponseWriter, r *http.Request, client *github.C
 		owner := strings.Split(tail, "/")[0]
 		repo := strings.Split(tail, "/")[1]
 		number, _ := strconv.ParseInt(strings.Split(tail, "/")[3], 10, 64)
+		// handle merge here as special case
 		merg := commentMerge(*p.Comment.Body)
+		forceMerge := commentForceMerge(*p.Comment.Body)
+		var auth CommentAuthor
+		err = json.Unmarshal(body, &auth)
+		if err != nil {
+			log.Println(err)
+		}
+		if forceMerge {
+			if auth.Comment.AuthorAssociation == "OWNER" {
+				message := "Merging away, authorized by " + *p.Comment.User.Login
+				client.PullRequests.Merge(*ctx, owner, repo, int(number), message, nil)
+				merg = false
+			}
+		}
 		// only merge if request from proper person
 		if merg {
-			var auth CommentAuthor
-			err = json.Unmarshal(body, &auth)
-			if err != nil {
-				log.Println(err)
-			}
 			switch auth.Comment.AuthorAssociation {
 			case
 				"OWNER",
 				"COLLABORATOR",
 				"MEMBER":
 				message := "Merging away, authorized by " + *p.Comment.User.Login
-				client.PullRequests.Merge(*ctx, owner, repo, int(number), message, nil)
+				status := testState(client, ctx, owner, repo, number)
+				if status == "success" {
+					client.PullRequests.Merge(*ctx, owner, repo, int(number), message, nil)
+				} else {
+					comment := &github.IssueComment{
+						Body: github.String("Cannot merge until tests pass"),
+					}
+					_, resp, err := client.Issues.CreateComment(*ctx, owner, repo, int(number), comment)
+					handleGithubError(resp, err, "cannot create initial comment")
+				}
 			}
 		}
 		handleLabels(*p.Comment.Body, client, ctx, owner, repo, number)
