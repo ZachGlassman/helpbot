@@ -62,6 +62,12 @@ func commentMerge(s string) bool {
 	return matched
 }
 
+func commentForceMerge(s string) bool {
+	var mergeRegExp = regexp.MustCompile(`\/forcemerge`)
+	matched := mergeRegExp.MatchString(s)
+	return matched
+}
+
 // Get type of comment author
 type CommentAuthor struct {
 	Comment struct {
@@ -157,13 +163,21 @@ func pullCommentHandler(w http.ResponseWriter, r *http.Request, client *github.C
 		number, _ := strconv.ParseInt(strings.Split(tail, "/")[3], 10, 64)
 		// handle merge here as special case
 		merg := commentMerge(*p.Comment.Body)
+		forceMerge := commentForceMerge(*p.Comment.Body)
+		var auth CommentAuthor
+		err = json.Unmarshal(body, &auth)
+		if err != nil {
+			log.Println(err)
+		}
+		if forceMerge {
+			if auth.Comment.AuthorAssociation == "OWNER" {
+				message := "Merging away, authorized by " + *p.Comment.User.Login
+				client.PullRequests.Merge(*ctx, owner, repo, int(number), message, nil)
+				merg = false
+			}
+		}
 		// only merge if request from proper person
 		if merg {
-			var auth CommentAuthor
-			err = json.Unmarshal(body, &auth)
-			if err != nil {
-				log.Println(err)
-			}
 			switch auth.Comment.AuthorAssociation {
 			case
 				"OWNER",
