@@ -13,7 +13,9 @@ before_script:
 deploy:
   app: helpbot-dev
   provider: script
-  script: heroku container:push web -a helpbot-dev
+  script: 
+    - heroku container:login
+    - heroku container:push web -a helpbot-dev
   api_key:
     secure: mAM1aztQWOoiwPA021IEplD9CZ94NbvnkRENCGZz6iT4RCSi/rq6eFAgVcJ4RKt4G4waMUgft9Wo2jNaKGaJtj7OHP9oAwciIjKjNJijJzDaMqIhtB7wIoDwsJhxuxuY2lFMp+ypjNRP+DjiYzJnjK2aNDx5O60dQ1dkegqvH5ANQUY+b5CViCmONLkTVDEnXtHLOYllfYpS4o5P18u2lirtgqSt6D+cwZNIF9x0YN3Igqcc//RmcCcnTzYU+47d0nLC6RQM+nIM34BU99Yf8ciQy5GxOYhaYQkCT+yJexsOnP+Km8mEH90jBw4cXu4ejC9BuHIxMfdK06jnOIYGzrvppLc6PIAFaWyy0HmGMyqYxFO2PiPh7n69/sbawquBVtdP5TwOQXgGAP1gx1Xj8//EzW/iy6yvSBfSYBbx6kEDT5r3PLnBYaYcjAhfhxQUIBLSLRsnHg+Q9J042sfTgyQVIqwxgwPZUgCY+eLOjRkVTjIb5bmDBMwuO/MqBIlYgIXyaPoJlMhhYHALnvkIyK8ZWGUj+4ovCBX7QFOriNXCITnoXTeAjLz1Nei3q1p8vQMsoAbgKlpj11fDVY8hQO7hY9hbldTKzrNzsCTHolLjr2cuAUFZvjVxw6cORKiw2c7zl3SHjMAVvCCUGHrmX9a8k/7Xym5FvVjRmy5gm88=
     
