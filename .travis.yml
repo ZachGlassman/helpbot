@@ -8,7 +8,7 @@ services:
   - docker
 
 before_script:
-  - wget -qO- https://toolbelt.heroku.com/install.sh | sh
+  - wget -qO- https://cli-assets.heroku.com/install-ubuntu.sh | sh
 
 deploy:
   app: helpbot-dev
