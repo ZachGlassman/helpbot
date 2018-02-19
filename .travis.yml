@@ -5,11 +5,7 @@ sudo: required
 services:
 - docker
 after_success:
-- if [ "$TRAVIS_BRANCH" == "master" ]; then 
-  docker login -u "$DOCKER_USERNAME" -p "$DOCKER_PASSWORD" registry.heroku.com; 
-  docker build -t registry.heroku.com/helpbot-dev/web . ; 
-  docker push registry.heroku.com/helpbot-dev/web; 
-  fi
+- if([ $TRAVIS_BRANCH == "master" ] && [ $TRAVIS_PULL_REQUEST == "false" ]); then docker login -u "$DOCKER_USERNAME" -p "$DOCKER_PASSWORD" registry.heroku.com; docker build -t registry.heroku.com/helpbot-dev/web . ; docker push registry.heroku.com/helpbot-dev/web; fi
 env:
   global:
   - secure: q5HZtyYcnEaQh6k4VRVSOB3IXsw1YPwTGX+WRb5yqPRVlV6S7pq55DPuWt+DE+TO/xj4s8SirBDOO3kI7QxdepYHTGXlf7FLsJqb8hXTpH+hfPVzL4azBbGk54mSLoNgbXQbTIElT92auJzWGCcEo041f+h/o2tx2DVmXv9nfLdo+WFy+TEEfRuQD8f6vYWPPV/lA/3l/o9KjP0FDP4So4gI128zIpWIRCyFtvyRsSkPKAYEHqFwws+w3mGw7c5CwEJWanCKabut9Pc8E59lboNllE5Bxbuhalfi/PteDw7rDk1gLCtkWAfRuQhT3NJXbYS8ULZb1JHyGlN5cFg9TztCkAgvS1A5H6H/t08Okq/mrxgxIXUt0gLGI3tQFybzyvPOtfsoJSssfwdnWXKFTDxL5wg96FjPF1FS9ygX/JOhwl0E35LbUm8pXWXGzHZLFwsKqqtBZ6sz676ShsmwUB8Tj0JuwvYkac3pm7yiiwJ+KX3AVZNVgfg/kn+JfifA58Sx+3UG//JIX8tHbr1af6x9FeQmsyDW4OEm/fW0Y+fStB3vL76Gb7hGD969ETa8UvptRUBxejhk4bWV1l1LJFMeRq4ZMVBDksidVDIXz/ZkCCbnQzo761kGA+bRyVg/xt9ihBy0V3OOUbZim1VBXnGUOSFfcKXqIFzLojOHVfM=
