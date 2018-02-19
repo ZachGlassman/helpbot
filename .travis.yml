@@ -1,21 +1,16 @@
 language: go
-
 go:
 - 1.9
-
 sudo: required
 services:
-  - docker
-
+- docker
 before_script:
-  - wget -qO- https://cli-assets.heroku.com/install-ubuntu.sh | sh
-
-deploy:
-  app: helpbot-dev
-  provider: script
-  script: 
-    - heroku container:login
-    - heroku container:push web -a helpbot-dev
-  api_key:
-    secure: mAM1aztQWOoiwPA021IEplD9CZ94NbvnkRENCGZz6iT4RCSi/rq6eFAgVcJ4RKt4G4waMUgft9Wo2jNaKGaJtj7OHP9oAwciIjKjNJijJzDaMqIhtB7wIoDwsJhxuxuY2lFMp+ypjNRP+DjiYzJnjK2aNDx5O60dQ1dkegqvH5ANQUY+b5CViCmONLkTVDEnXtHLOYllfYpS4o5P18u2lirtgqSt6D+cwZNIF9x0YN3Igqcc//RmcCcnTzYU+47d0nLC6RQM+nIM34BU99Yf8ciQy5GxOYhaYQkCT+yJexsOnP+Km8mEH90jBw4cXu4ejC9BuHIxMfdK06jnOIYGzrvppLc6PIAFaWyy0HmGMyqYxFO2PiPh7n69/sbawquBVtdP5TwOQXgGAP1gx1Xj8//EzW/iy6yvSBfSYBbx6kEDT5r3PLnBYaYcjAhfhxQUIBLSLRsnHg+Q9J042sfTgyQVIqwxgwPZUgCY+eLOjRkVTjIb5bmDBMwuO/MqBIlYgIXyaPoJlMhhYHALnvkIyK8ZWGUj+4ovCBX7QFOriNXCITnoXTeAjLz1Nei3q1p8vQMsoAbgKlpj11fDVY8hQO7hY9hbldTKzrNzsCTHolLjr2cuAUFZvjVxw6cORKiw2c7zl3SHjMAVvCCUGHrmX9a8k/7Xym5FvVjRmy5gm88=
-    
+- wget -qO- https://cli-assets.heroku.com/install-ubuntu.sh | sh
+after_success:
+- if [ "$TRAVIS_BRANCH" == "master" ]; then docker login -u "$DOCKER_USERNAME" -p
+  "$DOCKER_PASSWORD" docker build -t registry.heroku.com/helpbot-dev/web . 
+  docker push registry.heroku.com/helpbot-dev/web
+env:
+  global:
+  - secure: dDl1Ifo/hCQIM2dEaSqiQ7ZqVWPZuuQy5+I8RmstsnUwNVY1QbYVugsyqVyN3T1P+wrrnJzVvTReYYFnQXoNIUkuscAcoKfuG1yFlxi3HQrlGeb1ddd/fZgtoU7HSXhOpyd/CTPBFx9f0od0hdwfwNBlquULdLlHxZ4Guo+t9kzNXOUTBK7rhkxyZ7j7asQpubWz0OaMVIAuxDvhBmQGNMKqf1tSaC75E05s84j4zaoHi5Yyr0y7wTsqN10pdBAqedjqgdPpYz/knHqqLTtL8e0orHadIQI068twi1vJRkmWEqWI37xAxp+bIS774PuyoUYheWascXpael5LPO0ftcXo8uxxh/LSmrgHuDADDlHPjypYrYn+DdFFoTBZNqNzVeLy009+vzKF4udD9exQaJA5wIR9eciFThqQ977+Vn5zlhzH6LEz8YLRk/EvaB1s6G2ka9RjNr8ZbuAIijTfkZOXsOjeKY8X2A+5z3az23v6aZPNFDVGuOj0OZl/DXFlIgjIRtVfu4eafCA36rW1L//+x+Gunxqbb2nbsYBhw3LRXV4tc1F5ayevkJVY57meUtM9djyYjxhUWNQbvYiM2/Za2aiDOxAXBeh2e40xy+V8q07CjkkXy+oMyNuPNrFcawyOwa1yv71jKvnMZHr1KOngWmH9FHaoPOr2jJhLmzk=
+  - secure: GEj8n/LCugIA+d9EWt3+ycToy4QAvfvWfWn6tJz/lE0ywbPkGmnzDXxG8Unp5nrp3QfbJicfh1egKIB1JYwcGH36xXQ0+StKW/xpf8z5vjrSlO13QzqewWj05s358c4ZV8B+k+xFEpfdXOU3hhugZUjN3QF8fl1vWvwpo3JEOrCYQ1A4amZOP5KcksdVBOsGClxp+cyaZycliWKpXjP2Zf5lrb/bB8T7TRaSYYirkH//vJUM8AiTIN7Y2sYtb6KHjGn1IryPZ6STvLTzCi2WoZF41+lDuzWEGM4PYQpv2AVw3d7bT+SNTO5ZuT30LMGrFAccOv1xn2NLKdnOhNQ0v4LYYEa3SRehiu4ILEqHtDpc/OosideFo9hSwdJtssHwJ6O2e/ixq62g1B3rEvVC47wOZztYb9JG2Q6uqKQiPFTJA2jYQwJwJdad/Y6a5wkaiAHVLUUKx+j7dHNjQC3KhJuokVH76ucsZI8DZ+oVgIhg3kWFYys/kjLqeFDC587P9ib1aurKjC/59i/HC92go2tCvWtN0xHCyzzaHVHm1OkqAsfyT8Rl+mn6w+/O874ZOd5rVLcw5EwbMV17klxx2MW1IhJHwvuhUQPm7XOhO2dBOQmXMPDLGcwBSpLPhHAXDXOdgs1edoqR21MgGt0mDFxB9pw9MYB+gGSTsG9dMeM=
