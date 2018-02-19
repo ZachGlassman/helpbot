@@ -6,8 +6,9 @@ services:
 - docker
 
 after_success:
-- if [ "$TRAVIS_BRANCH" == "master" ]; then docker login -u "$DOCKER_USERNAME" -p
-  "$DOCKER_PASSWORD" docker build -t registry.heroku.com/helpbot-dev/web . ;
+- if [ "$TRAVIS_BRANCH" == "master" ]; then 
+  docker login -u "$DOCKER_USERNAME" -p "$DOCKER_PASSWORD";
+  docker build -t registry.heroku.com/helpbot-dev/web . ;
   docker push registry.heroku.com/helpbot-dev/web;
   fi
 env:
