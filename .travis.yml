@@ -4,12 +4,12 @@ go:
 sudo: required
 services:
 - docker
-before_script:
-- wget -qO- https://cli-assets.heroku.com/install-ubuntu.sh | sh
+
 after_success:
 - if [ "$TRAVIS_BRANCH" == "master" ]; then docker login -u "$DOCKER_USERNAME" -p
-  "$DOCKER_PASSWORD" docker build -t registry.heroku.com/helpbot-dev/web . 
-  docker push registry.heroku.com/helpbot-dev/web
+  "$DOCKER_PASSWORD" docker build -t registry.heroku.com/helpbot-dev/web . ;
+  docker push registry.heroku.com/helpbot-dev/web;
+  fi
 env:
   global:
   - secure: dDl1Ifo/hCQIM2dEaSqiQ7ZqVWPZuuQy5+I8RmstsnUwNVY1QbYVugsyqVyN3T1P+wrrnJzVvTReYYFnQXoNIUkuscAcoKfuG1yFlxi3HQrlGeb1ddd/fZgtoU7HSXhOpyd/CTPBFx9f0od0hdwfwNBlquULdLlHxZ4Guo+t9kzNXOUTBK7rhkxyZ7j7asQpubWz0OaMVIAuxDvhBmQGNMKqf1tSaC75E05s84j4zaoHi5Yyr0y7wTsqN10pdBAqedjqgdPpYz/knHqqLTtL8e0orHadIQI068twi1vJRkmWEqWI37xAxp+bIS774PuyoUYheWascXpael5LPO0ftcXo8uxxh/LSmrgHuDADDlHPjypYrYn+DdFFoTBZNqNzVeLy009+vzKF4udD9exQaJA5wIR9eciFThqQ977+Vn5zlhzH6LEz8YLRk/EvaB1s6G2ka9RjNr8ZbuAIijTfkZOXsOjeKY8X2A+5z3az23v6aZPNFDVGuOj0OZl/DXFlIgjIRtVfu4eafCA36rW1L//+x+Gunxqbb2nbsYBhw3LRXV4tc1F5ayevkJVY57meUtM9djyYjxhUWNQbvYiM2/Za2aiDOxAXBeh2e40xy+V8q07CjkkXy+oMyNuPNrFcawyOwa1yv71jKvnMZHr1KOngWmH9FHaoPOr2jJhLmzk=
